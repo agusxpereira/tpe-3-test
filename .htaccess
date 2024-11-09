@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Evita la redirección infinita para router.php
+    RewriteCond %{REQUEST_URI} !^/router.php$
+
+    # Redirige todas las rutas que no son archivos o directorios existentes hacia router.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/(.*)$ router.php?resource=$1 [QSA,L,END]
+
+    
+</IfModule>

@@ -3,10 +3,11 @@
 
     # Evita la redirección infinita para router.php
     RewriteCond %{REQUEST_URI} !^/router.php$
-
+    RewriteCond %{HTTP:Authorization} ^(.*)
     # Redirige todas las rutas que no son archivos o directorios existentes hacia router.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
     RewriteRule ^api/(.*)$ router.php?resource=$1 [QSA,L,END]
 
     

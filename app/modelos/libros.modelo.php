@@ -19,7 +19,7 @@ class LibrosModelo extends ModeloBase{
     
     }
 
-    public function obtenerLibros($filtrarOferta = false, $ordenarPor = false, $orden = false){
+    public function obtenerLibros($filtrarOferta = false, $ordenarPor = false, $orden = false, $pagina = false, $limite = false){
         $sql = "SELECT * FROM libros";
         //alteeramos el pedido según el parametro
 
@@ -54,11 +54,36 @@ class LibrosModelo extends ModeloBase{
                     break;
             }
         }
-
+        
         $consulta = $this->db->prepare($sql);
         $consulta->execute();
         $libros = $consulta->fetchAll(PDO::FETCH_OBJ);
-        
+      
+
+        $librosLimitados = [];
+        if(isset($pagina) && $pagina!=false){
+            if(!isset($limite) || $limite == false)
+                $limite = 10;
+
+            if (count($libros) > $limite) {
+                
+                //    13          10
+                $final =  $limite * $pagina;//10 * 2
+                $inicio = $final - $limite;//10
+
+                if($final > count($libros))
+                    $final = count($libros);
+            
+                for($i = $inicio; $i < $final; $i++){
+                    array_push($librosLimitados, $libros[$i]);
+                }
+                
+            }
+        }
+        if($librosLimitados != []){
+            return $librosLimitados;
+        }
+
         return $libros;
     }
 
@@ -123,9 +148,9 @@ class LibrosModelo extends ModeloBase{
         return $validacion;
     }
 
-    public function agregarEnOferta($id){
-        $query = $this->db->prepare("UPDATE libros SET en_oferta = 1 WHERE id_libro = ?");
-        $query->execute([$id]);
+    public function agregarEnOferta($id, $valor = 1){
+        $query = $this->db->prepare("UPDATE libros SET en_oferta = ? WHERE id_libro = ?");
+        $query->execute([$valor, $id]);
 
         return $this->obtenerLibroPorId($id);
     }

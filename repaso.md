@@ -171,6 +171,83 @@ Usamos los queryParams para modificar el GET a un recurso. Puede ser orden, filt
 Por ejemplo: `libros?page2&limit=10` -> paginacion (programarlo como sea como salga)
 
 
+### Seguridad
+
+> Las api rest deben ser stateless. La diferencia a como manteniamos la sesion anteriormente es que manteniamos el estado de la sesion para cada usuario. 
+>
+> Los metodo mas usados son 
+- basic: enviamos en los headers el par **usuario/contraseña** en base64
+
+```js
+const response = await fetch (`${url}/tarealibros/${id}`, {
+    headers: {
+        'Authorization': 'Basic d2ViMoxMjM0NTY=',
+        'Content-Type': 'application/json'
+    }
+});
+```
+
+> En cada llamado pasamos nuestro usuario y contraseña. En este caso la contraseña viaja casi sin codificar y nos la quedamos en memoria de nuestra app. 
+
+- api key:
+  - Se genera una clave única por usuario por servicio
+  - la clave es un valor al azar
+  - Funciona como una llave para ese servicio
+```js
+    const response = await fetch (`${url}/libros/${id}`,{
+        headers:{
+            'Authorization': 'API Key valor',//clave aleatoria
+            'Content-Type': 'application/json'
+        }
+    })
+```
+
+> las claves deben almaenarse entre sesiones.
+
+#### Bearer 
+
+> la mayoria de los problmas de tener que almacenar las contraseñas se solucionan con este método
+>  Es muy parecido a una api key pero no es aleatorio. El objetivo del token es almacenar informacion del usuario. Tambien se puede definir un vencimiento.
+>
+
+#### OAuth
+
+- Usa dos tokens provistos por el servidor:
+    - Acces TOken: permite usar el servicio (puede ser unBearer)
+    - Refresh token: permite obtener un nuevo token de acceso(opt.)
+- Permite que el servidor de autenticacion difiera del de servicio.
+- Varias formas de autenticacion posibles:
+  - Autorization Code FLow
+  - Implicit flow
+  - Resource Owner Password flow
+  - Client Credentials flow
+  
+#### JWT
+
+JSON WEB TOKENS:
+- codificados en un string
+- Estandar RFC 7519
+- Permite generar, decoficar y verificar los tokens (lo firma la API)
+
+Tiene una cabezara que suele ser la misma siempre (define un algoritmo), y un payload, que es lo que nosotros querrramos. Y por último una firma y un secreto que se concatena con .
+
+Cada cadena concatenada pertenece al hader, al payload y a la firma.
+
+           /*
+            si vienen 13 libros: 
+            y pagina = 2;
+            [. . . . . . . . . . . . . ]
+                                [      ]
+            
+            
+            
+            
+            
+                                */
 
 
 
+
+la idea seria que un usuario envia una una peticion GET a api/usuarios/token con su email y contraseña. Nosotros validamos y creamos el token. Ahora queda verificar ese token por cada peticion.
+
+> Este es el token que me genera: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOm51bGwsImVtYWlsIjpudWxsLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3MzEyOTUxNDIsImV4cCI6MTczMTI5NTIwMiwiU2FsdWRvIjoiSG9sYSJ9.d7Z1jdbiqDWjXEVDt17m1bsqfBaWBxqdXEUG5nX6_w0"

@@ -20,7 +20,7 @@ async function obtenerGeneros(elemento = "#genero") {
         const response = await fetch(uri+"generos");
         lista_generos = await response.json();
         const select = document.querySelector(elemento);
-        
+        select.innerHTML = "";
         for (const element of lista_generos) {
             let op = document.createElement("option");
             op.value = element.nombre;
@@ -238,7 +238,15 @@ function mostrarModal(id){
         editarLibro(libro_id);
         modal.classList.remove("show");
         
-    })
+    });
+
+    buttonClose.addEventListener('click', (e)=>{
+        e.preventDefault();
+        modal.classList.remove("show");
+        document.querySelector("#form-edita").reset();
+
+
+    });
     
 }
 

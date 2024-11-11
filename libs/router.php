@@ -77,6 +77,7 @@ class Router {
     }
 
     public function addMiddleware($middleware) {
+       
         $this->middlewares[] = $middleware;
     }
     

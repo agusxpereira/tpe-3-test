@@ -21,6 +21,8 @@ class LibroApiController{
       
         
         $filtrarOferta = false;
+        $pagina = false;
+        $limite = 10;
         $ordenarPor = false;
         $orden=false;
 
@@ -38,10 +40,17 @@ class LibroApiController{
             }
         
         }
+        if(isset($req->query->pagina) && ($req->query->pagina != "")){
+            $pagina = $req->query->pagina;
+            
+        }
+        if(isset($req->query->limite) && ($req->query->limite != "")){
+            $limite = $req->query->limite;                
+        }
         
         try {
             
-            $libros = $this->modelo->obtenerLibros($filtrarOferta, $ordenarPor, $orden);
+            $libros = $this->modelo->obtenerLibros($filtrarOferta, $ordenarPor, $orden, $pagina, $limite);
             return $this->vista->response($libros);//tiene como defecto 200
         } catch (Exception $e) {
             // Manejo de error: lo mostramos en la respuesta
@@ -142,26 +151,22 @@ class LibroApiController{
 
     }
 
-    public function agregarOferta($req, $res){
+    public function cambiarOferta($req, $res){
     
         $id = $req->params->id;//el id lo obtenemos siempre de los parametros, no lo envaimos por el body
         $libro = $this->modelo->obtenerLibroPorId($id);
+        $valor = 1;
         if(!$libro)
             return $this->vista->response("No existe esa Tarea $id", 404);
         
         if($libro[0]->en_oferta == 1)
-            return $this->vista->response("La tarea $id ya está en oferta", 400);
-            
-
-
-        $libroModificado = $this->modelo->agregarEnOferta($id);
+            $valor = 0;
         
+        $libroModificado = $this->modelo->agregarEnOferta($id, $valor);        
         if(!$libroModificado)
             return $this->vista->response("Ocurrio un error inesperado", 500);
         
-        
         return $this->vista->response($libroModificado, 201);
-
     }
 
     public function obtenerGeneros($req, $res){

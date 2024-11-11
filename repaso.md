@@ -251,3 +251,315 @@ Cada cadena concatenada pertenece al hader, al payload y a la firma.
 la idea seria que un usuario envia una una peticion GET a api/usuarios/token con su email y contraseña. Nosotros validamos y creamos el token. Ahora queda verificar ese token por cada peticion.
 
 > Este es el token que me genera: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOm51bGwsImVtYWlsIjpudWxsLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3MzEyOTUxNDIsImV4cCI6MTczMTI5NTIwMiwiU2FsdWRvIjoiSG9sYSJ9.d7Z1jdbiqDWjXEVDt17m1bsqfBaWBxqdXEUG5nX6_w0"
+>
+
+## Repaso parcial
+
+
+
+- **Ejercicio 2**
+
+
+Implemente el siguiente requerimiento siguiendo el patrón MVC. No es necesario realizar las vistas, sólo controlador(es), modelo(s) y las invocaciones a la vista.
+
+- Se debe mostrar una lista de turnos correspondientes al día actual.
+- Se debe informar el nombre de la mascota y su peso.
+- Mostrar el total de turnos del día.
+
+
+
+```php
+<?php
+    public function getTurnosDiaActual(){
+        $fechaActual = $this->obtenerFechaActual();
+        $dia = $fechaActual->dia;
+        $mes = $fechaActual->mes;
+        $anio = $fechaActual->anio;
+        $turnos = $this->turnoModel->getTurnosDiaActual($dia, $mes, $anio);
+        $totalTurnos = count($turnos);
+        foreach ($turnos as $turno) {
+            $mascota = $this->mascotaModel->getMascota($turnos->id_mascota);
+            $turno->nombre_mascota = $mascota->nombre;
+            $turno->edad = $mascota->edad;
+        }
+        return $this->view->getTurnosDiaActual($turnos, $totalTurnos);
+    }
+?>
+```
+
+> Primero pedimos el día actual y lo guardamos en la variable `fechaActual`. Luego la usamos para pedir los turnos de el dia actual y los guardamos en una variable llamada `turnos`. Por cada turno buscamos la mascota registrada para dicho turno:
+>
+> `$mascota = $this->nombre_mascota->getMascota($turnos->id_mascota);`
+>
+> Por ultimo, agregamos al turno actual la informacion de estas mascotas, y al finalizar la iteraicon devolvemos a una vista y le pasamos el toatl de turnos (que es un numero) y los turnos con las mascotas. La vista se encarga de mostrarlos.
+>
+
+
+- **Ejercicio 1 - Alta de turno**
+  
+Implemente el siguiente requerimiento siguiendo el patrón MVC. No es necesario el router, ni las vistas ni los modelos: sólo la función del controlador y middlewares necesarios.
+Se debe poder agregar un turno indicando todos los datos necesarios y cumpliendo las siguientes condiciones. Informar los errores correspondientes en caso de no cumplirlos.
+
+1. Controlar posibles errores de carga.
+1. Verificar que el usuario esté logueado.
+1. Verificar que la mascota exista.
+1. Verificar que no haya más de 3 turnos en una misma hora.
+
+
+```php
+    //ejercicio 1
+    public function addTurno(){
+        //hacemos las correspondientes controles
+        if(!isset($_POST['dia']) || empty($_POST['dia'])){
+            return $this->vista->mostrarMensaje('Falta completar el dia');
+        }
+        if(!isset($_POST['id_mascota']) || empty($_POST['id_mascota'])){
+            return $this->vista->mostrarMensaje('Falta agregar la mascota');
+        }
+        if(!isset($_POST['mes']) || empty($_POST['mes'])){
+            return $this->vista->mostrarMensaje('Falta completar el mes');
+        }
+        if(!isset($_POST['anio']) || empty($_POST['anio'])){
+            return $this->vista->mostrarMensaje('Falta completar el anio');
+        }
+        if(!isset($_POST['hora']) || empty($_POST['hora'])){
+            return $this->vista->mostrarMensaje('Falta completar el hora');
+        }
+
+        $dia = $_POST['dia'];
+        $mes = $_POST['mes'];
+        $id_mascota = $_POST['id_mascota'];
+        $anio = $_POST['anio'];
+        $hora = $_POST['hora'];
+
+        if($this->mascotaModel->getMascota($id_mascota)){
+            return $this->vista->mostrarMensaje("La mascota no existe");
+        }
+        $totalTurnos = count($this->turnoModel->getTurnosDiaActual($dia, $mes, $anio, $hora));
+        //obtenemos los turnos del dia
+    
+        if($totalTurnos >= MAX_TURNOS_POR_HORA){
+            return $this->vista->mostrarMensaje("No se pueden agregar mas de ". MAX_TURNOS_POR_HORA. ' turnos a la misma hora');
+        }
+
+        $id = $this->turnoModel->insertarTurnos($dia, $mes, $id_mascota, $anio, $hora);
+        if(!$id){
+            $this->vista->mostrarMensaje("No se pudo agregar intentalo de nuevo");
+        }
+        $this->vista->mostrarMensaje("Se agrego correctamente");
+    }
+
+```
+
+A diferencia de la funcion anterioir, acá pasamos `$hora` para simular que pedimos los turnos de determinado dia en determinada ----------
+
+Ahora miremos los middlewares:
+
+```php
+<?php
+function sessionAuthMiddleware($res)
+{
+    session_start();
+    if (isset($_SESSION['NOMBRE'])) {
+        $res->user = new stdClass();
+        $res->user->id = $_SESSION['ID_USER'];
+        $res->user->nombre = $_SESSION['NOMBRE'];
+        return;
+    }
+}
+
+?>
+```
+```php
+<?php
+
+173 B
+
+<?php
+function verifyAuthMiddleware($res)
+{
+    if ($res->user) {
+        return;
+    } else {
+        header('Location: ' . BASE_URL . 'showLogin');
+        die();
+    }
+}
+?>
+```
+
+Solamente declaramos un `$user` en el controlador y después se lo pasmos a la vista cuando la inicializamos.
+
+
+`$this->view = new TurnoView($this->res->user);`
+
+La vista hace esto: 
+
+```php
+class TurnoView{
+    private $user = null;
+
+	public function __construct($user)
+	{
+		$this->user = $user;
+	}
+
+//caundo llamamos a una funcion
+public function getTurnosDiaActual($turnos, $cantidadTurnos)
+	{
+		$user = $this->user;
+		require 'app/templates/layout/header.phtml';
+		require 'app/templates/lista_turnos.phtml';
+		require 'app/templates/layout/footer.phtml';
+	}
+//...
+```
+
+Y esto hacía el `model`:
+
+```php
+<?php
+public function getTurnosDiaActual($dia, $mes, $anio, $hora = null)
+	{
+		$query = 'SELECT *
+        FROM turno t
+        WHERE t.dia = ? AND t.mes = ? AND t.anio = ?';
+
+		$queryExecute = [$dia, $mes, $anio];
+
+		if ($hora) { // Solo ej. 1, no se pedía para el parcial
+			$query = $query . ' AND t.hora = ?';
+			array_push($queryExecute, $hora);
+		}
+
+		$query = $query . ' ORDER BY t.hora';
+
+		$query = $this->db->prepare($query);
+		$query->execute($queryExecute);
+		return $query->fetchAll(PDO::FETCH_OBJ);
+	}
+
+?>
+```
+
+
+Podemos ver como se va armando el query y el arreglo a ejecutar según si existe o no la hora.
+
+### Repaso RECU 06/11/23
+
+" plataforma para la venta de tickets de recitales"
+
+Tablas:
+
+    Ventas(id: int, id_evento: int, id_usuario: int, cant_entradas: int, fecha_compra: date)
+
+    Eventos(id: int, nombre: varchar, precio: float, fecha_evento: date)
+
+    Eventos(id: int, nombre: varchar, precio: float, fecha_evento: date)
+
+implemente el siguiente requerimiento siguiendo el patrón MVC
+
+>  No es necesario realizar las vistas, solo controlador(es), modelo(s) y las invocaciones a la vista.
+
+1.  Controle posibles errores de carga. 
+1. Los datos ingresados deben obtenerse por POST
+1.    Verificar que el evento y el usuario existan
+1. Controlar que existan suficientes entradas disponibles para efectuar la venta 
+1.  En caso de poder realizar la venta, actualizar la cantidad de entradas restantes.
+
+
+#### Resolucion:
+
+- VentasController
+```php
+
+class VentasController{
+    $private $modeloEventos;
+    $private $modeloUsuarios;
+    $private $modeloVentas;
+    $private $vistaVentas;
+    public function __construct(){
+        //inicializamos
+    }
+
+    public function venderEntrada(){
+        if(!isset($_POST['id_evento']) || empty($_POST['id_evento']))
+            return $this->vistaVentas->mostrarMensaje("No hay ningun evento seleccionado");
+    
+        if(!isset($_POST['id_usuario']) || empty($_POST['id_usuario']))
+            return $this->vistaVentas->mostrarMensaje("Falta completar usuario");
+    
+        if(!isset($_POST['cant_entradas']) || empty($_POST['cant_entradas']))
+            return $this->vistaVentas->mostrarMensaje("No hay ninguna cantidad seleccionada");
+        
+        if(!isset($_POST['fecha']) || empty($_POST['fecha']))
+            return $this->vistaVentas->mostrarMensaje("No hay ninguna fecha seleccionada");
+        
+
+        $id_evento = $_POST['id_evento'];
+        $id_usuario = $_POST['id_usuario'];
+        $cant_entradas = $_POST['cant_entradas'];
+        $fecha = $_POST['fecha'];
+        
+        if(!$this->modeloEventos->getEventById($id))
+            return $this->vistaVentas->mostrarMensaje("Este evento no existe");
+        
+        if(!$this->modeloUsuarios->getUserById($id))
+            return $this->vistaVentas->mostrarMensaje("Este usuario no existe");
+        
+        
+        $entradasDisponibles = $this->modeloEventos->obtenerEntradasDisponibles($id_evento);
+        if($cant_entradas > $entradasDisponibles){
+            return $this->vistaVentas->mostrarMensaje("No hay entradas suficientes");
+        }
+
+        $this->modeloEventos->setEntradasDisponibles($id_evento, $cant_entradas);
+
+        //me falto crear la venta lo más importante
+        // en el repo de la clase la funcion está así:
+        //$venta = $this->ventasModel->create($id_evento, $id_usuario,$cant_entradas, now())
+        //tampoco se pide la fecha porque la fecha de la venta va a ser "ahora"
+
+        $venta = $this->modeloVentas->nuevaVenta($id_evento, $id_usuario, $cant_entradas, now());
+        //siempre a vamos a devolver el objeto creado porque esto es una buena practica
+
+        $this->vista->ventaCreada($venta);
+    }   
+}
+```
+
+- modeloEventos
+```php
+<?php
+
+class ModelEvents{
+    private $db;
+
+    public function __construct(){
+        $this->db = new PDO();
+    }
+
+
+    public function obtenerEntradasDisponibles($id){
+        $query = $this->db->prepare("SELECT entradas_disponibles FROM Eventos WHERE id = ?");
+        $query->execute([$id]);
+        $result = $query->fetchAll(PDO::OBJ);
+        $cantidad = $result[0]->entradas_disponibles;
+        return $cantidad;
+    }
+
+    public function setEntradasDisponibles($id, $cantidad){
+
+        $nuevaCantidad = $this->obtenerEntradasDisponibles($id) - $cantidad;
+        $sentence = $this->db->prepare("UPDATE `Eventos` SET entradas_disponibles = ? WHERE id = ?");
+        $sentence->execute([$nuevaCantidad]);
+        $id = $sentence->rowCount();
+        return $id;
+    }
+}
+
+?>
+```
+
+> En MariaDB y MySQL, la sintaxis correcta para actualizar un registro en una tabla no incluye FROM.
+

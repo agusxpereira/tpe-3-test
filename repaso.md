@@ -563,3 +563,146 @@ class ModelEvents{
 
 > En MariaDB y MySQL, la sintaxis correcta para actualizar un registro en una tabla no incluye FROM.
 
+### parcial 23/10/23
+
+Es el mismo sistema que el casi anterioir. Pero ahora nos piden:
+
+> Listar todas las ventas realizadas en un día dado y para un evento dado. Por cada venta se deberá indicar id de la venta, cantidad de entradas, y precio total abonado.
+
+
+- VentasController
+```php
+private $eventoModel;
+private $ventasModel;
+private $ventasVista;
+//si me lo pidieran acá tendia un $res
+class VentasController{
+
+    public function __construct(){
+        $this->eventoModel = new EventoModel();
+        $this->ventasModel = new VentasModel();
+        $this->ventasVista = new VentasVista();//y como parametro iria $res->user
+    }
+
+    public function getVentasDia(){
+
+        if(!isset($_GET['dia']) || empty($_GET['dia']))
+            return $this->vista->mostrarMensaje("No se especifico un día");
+        
+        if(!isset($_GET['mes']) || empty($_GET['mes']))
+            return $this->vista->mostrarMensaje("No se especifico un mes");
+        
+        if(!isset($_GET['anio']) || empty($_GET['anio']))
+            return $this->vista->mostrarMensaje("No se especifico un año");
+        
+        if(!isset($_GET['id_evento']) || empty($_GET['id_evento']))
+            return $this->vista->mostrarMensaje("No se especifico un evento");
+        
+        $dia = $_GET['dia'];
+        $mes = $_GET['mes'];
+        $anio = $_GET['anio'];
+        $id_evento = $_GET['id_evento'];
+
+        $evento = $this->modeloEventos->getEventoById($id_evento);
+
+        if(!$evento)
+            return $this->vistaVentas->mostrarMensaje("El evento no existe");
+
+        $ventas = $this->modelo->getVentasFecha($anio, $mes, $dia);
+        foreach($ventas as $venta){
+            $venta->id_evento = $evento->id;
+            $venta->precio_evento = $evento->precio;
+        }
+
+        return $this->vista->mostrarVentasFecha($ventas, $anio, $mes, $dia);//para poder mostrar el dia tambien
+    }
+}
+```
+- ModeloVentas
+```php
+private $db;//conexion a base de datos
+class ModeloVentas{
+    public function __construct(){
+        $this->db = new PDO();
+    }
+
+   public function getVentasFecha($anio, $mes, $dia){
+    //los suponesmos como correctos
+
+    $fechaBuscada = "$anio-$mes-$dia";
+
+    $sql = "SELECT * FROM `ventas` WHERE fecha_compra = ?";
+    $sentence = $this->db->prepare($sql);
+    $sentece->execute([$fecahBuscada]);
+
+    $ventas = $sentece->fetchAll(PDO::FETCH_OBJ);
+
+    return $ventas;
+   }
+
+}
+```
+- ModeloEventos
+```php
+private $db;//conexion a base de datos
+class ModeloEventos{
+    public function __construct(){
+        $this->db = new PDO();
+    }
+    public function getEventoById($id){
+        $sql = "SELECT * FROM `Eventos` WHERE id = ?";
+        $sentence = $this->db->prepare($sql);
+        $sentece->execute([$id]);     
+        $ventas = $sentece->fetchAll(PDO::FETCH_OBJ);       
+        return $ventas;
+    }
+}
+```
+
+#### Comparacion con la resolucion publicada
+
+> Para empezar componen la fecha en un sólo atributo por lo que el control cambia un poco :p
+
+```php
+if (empty($_GET['fecha_compra']) || empty($_GET['id_evento'])) {
+            $this->view->showError('Falta ingresar datos obligatorios');
+            return;
+        }
+
+```
+
+> Acá hice algo parecido, solamente que manda toda la fecha junta y pregunta tambien por el evento del ID, es decir buscar por las dos cosas en Ventas, lo que es un error mio, por que si hay dos eventos en la misma fecha, mi solucion no distinguiria:
+
+```php
+
+   $ventas = $this->ventaModel->getByFechaYEvento($fechaCompra, $idEvento);
+   foreach($ventas as $venta) {
+       $venta->total = $venta->cant_entra * $evento->precio;
+   }
+
+```
+
+> tambien hay un problema con el total del precio, el tema es que claro, cada venta  puede varian la cantidad de entrada, por lo que esta bien calularlo así. Yo por a cada venta le asignaba nada más el precio del evento pero no calculaba. Prestar Mucha atencion a estas cosas. Lo que si hice bien fue pedir el precio al objeto evento que ya habia creado. Tambien aclarar que ventas ya tiene un id_evento asignado por lo que no es neceseario asignarselo.
+
+
+> Así obtenemos la ventas con lo parametros solicitados, según las varibales que pedimos:
+>
+```php
+    public function getByFechaYEvento($fechaCompra, $idEvento) {
+        $db = new PDO('mysql:dbname=test;host=localhost', 'root', '');
+
+        $query = $db->prepare("SELECT id, cant_entra FROM ventas WHERE fecha_compra = ? AND id_evento = ?");
+        $query->execute([$fechaCompra, $idEvento]);
+
+        return $query->fetchAll(PDO::FETCH_OBJ);
+    }
+```
+
+> Esto yo tambien lo habia hecho distinto, parte del error empieza en no haber diferenciado los eventos de la misma fecha (el AND id_evento). Y la otra es que acá seleccionan los parametros de la consulta, no se traen el registro entero, solo que se pide.
+
+> Despues el evento si esta bien, lo unico que cambia es un fetchAll por un `->fetch(PDO::FETCH_OBJ);`
+
+
+Tengo que prestar mas atencion y leerlo un poco mas, si bien lo de las fecha no lo consideraria un error la verdad es que no se si está para aprobar mi solucion.
+
+

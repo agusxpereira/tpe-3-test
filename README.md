@@ -25,9 +25,8 @@ Ejemplo: `(GET) api/libros?ordenarPor=precio&orden=descendente`
 
 #### Ejemplo filtrado:
 
-Para poder filtrar libros agregue el campo ´en_oferta´. Por ejemplo:
-
-´(GET) api/libros?ofertas=true´
+Para poder filtrar libros agregue el campo `en_oferta`. Por ejemplo:
+`(GET) api/libros?ofertas=true`
 
 
 ### Get libros/:id

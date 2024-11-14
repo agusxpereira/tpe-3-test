@@ -709,3 +709,24 @@ class PrestamosController{
 }
 
 ```
+
+
+### Ejericio parcial rehecho
+
+  public function getTurnosDiaActual()
+    {
+        $fechaActual = $this->obtenerFechaActual();
+        $dia = $fechaActual->dia;
+        $mes = $fechaActual->mes;
+        $anio = $fechaActual->anio;
+        $turnos = $this->turnoModel->getTurnosDiaActual($dia, $mes, $anio);
+        $totalTurnos = count($turnos);
+        foreach ($turnos as $turno) {
+            $mascota = $this->mascotaModel->getMascota($turno->id_mascota);
+            $turno->nombre_mascota = $mascota->nombre;
+            $turno->edad = $mascota->edad;
+        }
+        return $this->view->getTurnosDiaActual($turnos, $totalTurnos)
+    }
+
+> En este ejercicio es importante notar que la funcion obtener turnosDIaActual también es la misma que usamos en el ejerccicio 2, pero como no pasmos una hora nos trae todo el dia, en la otra funcion al definir una hora se le agregaba una "condicion" mas a la sentencia sql. Tambien notar que se alteran los turnos para que contenga la informacion de las mascotas que previamente habiamos ido a buscar.
